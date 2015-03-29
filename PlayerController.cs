@@ -2,47 +2,46 @@
 using System.Collections;
 
 public class PlayerController : MonoBehaviour {
-	/*
-	public float horSpeed;
-	public float verSpeed;
-	public float horplusMoveSpeed;
-	public float verplusMoveSpeed;
-	*/
 
-	private Vector3 relativePosition;
+	//jumping
+	public int jumpSpeed;//Speed
+	private float jumpCD;
+	private float jumpValue;//stores the value of jump
 
-	private float isFallingTimer;
-	private float fallRotation;
-
-	private bool runForward = true;
-
-	public float jumpCD;
-	private float jumpValue;
-	public int jumpSpeed;
-	public int runSpeed;
-	private float runValue;
-	public int playerHealth;
-	private int healthBonus;
-
-	public Texture2D hearth;
-
+	private bool grounded = false;
+	
 	private bool bounce;
 
-	public Transform checkPoint;
+	//move Hor
+	public int runSpeed;
+	private float runValue;//stores the value of run
+	private bool runForward = true;//stores what direction you move
 
+	//health
+	public int playerHealth;
+	private int healthBonus;//stores how many shrooms you picked up
+	private float damagedCd;
+
+	//sound
+	public AudioClip checkPointSound;
+	public AudioClip getDamagedSound;
+	public AudioClip killEnemySound;
+	public AudioClip hearthSound;
+	
+
+	//restarting
 	public int maxFallDistance;
 	private bool retryButton = false;
 	private bool finished = false;
 
-	private float run;
+	//other
+	public Transform checkPoint;//stores what checkpoint you last touched
 
-	private bool grounded = false;
+	public Texture2D hearth;//health indicator
 
-	public Rigidbody2D rb;
+	private Rigidbody2D rb;
 
 	Animator anim;
-
-	//private ParallaxController _parallaxController;
 
 	// Use this for initialization
 	void Start () {
@@ -53,32 +52,27 @@ public class PlayerController : MonoBehaviour {
 		//this.transform.rotation.z = 0;
 		//rigidbody2D.fixedAngle = true;
 	}
-	/*
-	void FixedUpdate() {
-		Controls ();
-		fallToDeath ();
 
-		print (grounded);
-	}
-	*/
 	void Update() 
 	{
 		Controls ();
 		fallToDeath ();
-		
-		print (grounded);
 	}
 	//All Triggers
 	void OnTriggerEnter2D(Collider2D other)//triggers
 	{
 		if (other.gameObject.tag == "Checkpoint") {
 			checkPoint = other.gameObject.transform;
+			audio.clip = checkPointSound;
+			audio.Play();
 		}
 		if (other.gameObject.tag == "+Health")
 		{
 			playerHealth += 1;
 			healthBonus += 1;	
 			Destroy(other.gameObject);
+			audio.clip = hearthSound;
+			audio.Play();
 		}
 	}
 
@@ -100,8 +94,16 @@ public class PlayerController : MonoBehaviour {
 			bounce = true;
 			rb.AddForce( new Vector3(0, 400, 0));
 		}
+		if(other.gameObject.tag == "BigBouncy")
+		{
+			anim.SetInteger("AnimationState",1);
+			grounded = false;
+			bounce = true;
+			rb.AddForce( new Vector3(0, 800, 0));
+		}
 		if(other.gameObject.tag == "End")
 		{
+			print("KK");
 			rb.AddForce( new Vector3(0, 1500, 0));
 			finished = true;
 		}
@@ -109,23 +111,32 @@ public class PlayerController : MonoBehaviour {
 		{
 			Destroy(other.gameObject);
 			rb.AddForce( new Vector3(0, 250, 0));
+			audio.clip = killEnemySound;
+			audio.Play();
 		}
 		else{
-			if(other.gameObject.tag == "Enemy" || other.gameObject.tag == "-Health")//1 leven eraf
+			if(other.gameObject.tag == "Enemy" || other.gameObject.tag == "-Health" && damagedCd <= 0)//1 leven eraf
 			{	
+				audio.clip = getDamagedSound;
+				audio.Play();
 				anim.SetInteger("AnimationState",3);
+				grounded = false;
 				playerHealth--;
-				rb.AddForce( new Vector3(0, 400, 0));
+				damagedCd = 0.1f;
+				rb.AddForce( new Vector3(0, 240, 0));
 				if(playerHealth <= 0)
 				{
 					//rigidbody2D.fixedAngle = false;
-					rb.AddForce( new Vector3(0, 400, 0));
 					retryButton = true;
 					//transform.rotation = Quaternion.identity;
 					//Destroy(this.collider);
 					//Physics.IgnoreCollision(this.GetComponent<Collider>(), GetComponent<Collider>());
 				}
 			}
+		}
+		if(damagedCd > 0)
+		{
+			damagedCd -= Time.deltaTime;
 		}
 	}
 
@@ -134,43 +145,42 @@ public class PlayerController : MonoBehaviour {
 	{
 		if (playerHealth > 0)
 		{
-			jumpCD -= Time.deltaTime;//Jump CD
-			if (Input.GetKey (KeyCode.Space) && grounded && jumpCD <= 0) {///Springen
+			if(jumpCD > 0)
+			{
+				jumpCD -= Time.deltaTime;//Jump CD
+			}
+			if (Input.GetKey (KeyCode.Space) && grounded && jumpCD <= 0) {///jumping (SPACE)
 				rb.AddForce (new Vector2 (0, jumpValue));
 				grounded = false;
 				anim.SetInteger ("AnimationState", 2);
-				jumpCD = 0.4f;
+				jumpCD = 0.30f;
 			}
 			if (grounded == false) {
 				if (!bounce) {
-					runValue -= runValue / 3 * Time.deltaTime;//langzamer opzij als je in de lucht bent
+					runValue -= runValue / 3 * Time.deltaTime;//moves slower when in the air
 				}
 				if (Input.GetKey (KeyCode.S)) {
-					anim.SetInteger ("AnimationState", 0);
-					rb.AddForce (new Vector2 (0, -1000 * Time.deltaTime));//naar beneden als je sprint
+					rb.AddForce (new Vector2 (0, -1500 * Time.deltaTime));//dash down
 				}
 			}
 			if (Input.GetKey (KeyCode.A)) {
-				if (grounded) {
-					anim.SetInteger ("AnimationState", 1);
-				}
 				if (runForward) {
 					transform.localScale = new Vector3 (-1, 1, 1);
 				}
+				anim.SetInteger ("AnimationState", 1);
 				runForward = false;
 				rb.AddForce (new Vector2 (-runValue * Time.deltaTime, 0));
 			}
 			if (Input.GetKey (KeyCode.D)) {
-				if (grounded) {
-					anim.SetInteger ("AnimationState", 1);
-				}
 				if (!runForward) {
 					transform.localScale = new Vector3 (1, 1, 1);
 				}
+				anim.SetInteger ("AnimationState", 1);
 				runForward = true;
 				rb.AddForce (new Vector2 (runValue * Time.deltaTime, 0));
 			}
-			if (!Input.GetKey (KeyCode.D) && !Input.GetKey (KeyCode.A)) {
+			if(!Input.GetKey (KeyCode.D) && !Input.GetKey (KeyCode.A) && grounded)
+			{
 				anim.SetInteger ("AnimationState", 0);
 			}
 		}
@@ -179,7 +189,7 @@ public class PlayerController : MonoBehaviour {
 	//Player falls to death
 	void fallToDeath()
 	{
-		if (transform.position.y <= maxFallDistance)//doodgaan
+		if (transform.position.y <= maxFallDistance)//dead by falling
 		{
 			playerHealth--;
 			retryButton = true;
@@ -205,8 +215,8 @@ public class PlayerController : MonoBehaviour {
 		}
 		if(finished)
 		{
-			GUI.Box (new Rect (Screen.width / 2 - 75, Screen.height / 2 - 50, 150, 25), "You Win!!");
-			if (GUI.Button (new Rect ((Screen.width / 2 - 50), Screen.height / 2 - 20, 100, 40), "Again?"))
+			GUI.Box (new Rect (Screen.width / 2 - 75, Screen.height / 2 - 50, 160, 25), "You Win!!");
+			if (GUI.Button (new Rect ((Screen.width / 2 - 40), Screen.height / 2 - 20, 100, 40), "Again? (R)") || Input.GetKey (KeyCode.R))
 			{
 				Application.LoadLevel(Application.loadedLevelName);
 			}

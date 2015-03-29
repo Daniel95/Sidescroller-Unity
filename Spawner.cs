@@ -7,9 +7,9 @@ public class Spawner : MonoBehaviour {
 	public Transform enemyLocation;
 
 	private float spawnCd;
-	private float spawnChance;
+	private float spawnRandValue;
 	public float spawnRate;
-	public float spawnCDTime;
+	public float spawnCdTime;
 	// Use this for initialization
 	void Start () {
 		
@@ -22,11 +22,11 @@ public class Spawner : MonoBehaviour {
 	void Spawn()
 	{
 		spawnCd -= Time.deltaTime;
-		spawnChance = Random.value * Time.deltaTime;
 		if (spawnCd <= 0) {
-			if (spawnChance < spawnRate) {
+			spawnRandValue = Random.value;
+			spawnCd = spawnCdTime;
+			if (spawnRandValue < spawnRate) {
 				Instantiate (enemyClone, enemyLocation.position, enemyLocation.rotation);
-				spawnCd = spawnCDTime;
 			}
 		}
 	}

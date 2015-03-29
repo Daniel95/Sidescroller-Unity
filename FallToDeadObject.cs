@@ -1,7 +1,7 @@
 ﻿using UnityEngine;
 using System.Collections;
 
-public class ObjectFallToDead : MonoBehaviour {
+public class FallToDeadObject : MonoBehaviour {
 
 	// Use this for initialization
 	void Start () {

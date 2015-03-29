@@ -1,7 +1,7 @@
 ﻿using UnityEngine;
 using System.Collections;
 
-public class ObstacleMove : MonoBehaviour {
+public class MovebackforthObject : MonoBehaviour {
 
 	public float moveSpeed;
 	public float backAndForth;
@@ -50,4 +50,14 @@ public class ObstacleMove : MonoBehaviour {
 			transform.Translate(0, moveSpeed, 0);
 		}
 	}
+	
+	void OnCollisionEnter2D(Collision2D other)
+	{
+		if(other.gameObject.tag == "-Health")
+		{
+			Destroy(this.gameObject);
+		}
+	}
+
+
 }
